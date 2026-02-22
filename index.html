@@ -1,0 +1,420 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>VibeCheck</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script>
+    tailwind.config = {
+      theme: {
+        extend: {
+          fontFamily: {
+            display: ['"Fredoka"', 'sans-serif'],
+            body: ['"Inter"', 'sans-serif'],
+          },
+        },
+      },
+    };
+  </script>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link
+    href="https://fonts.googleapis.com/css2?family=Fredoka:wght@400;600;700&family=Inter:wght@400;500;600&display=swap"
+    rel="stylesheet"
+  />
+  <style>
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body { font-family: 'Inter', sans-serif; }
+    .vibe-transition { transition: all 0.6s cubic-bezier(0.4, 0, 0.2, 1); }
+    .bounce-in { animation: bounceIn 0.5s ease; }
+    @keyframes bounceIn {
+      0% { transform: scale(0.9); opacity: 0.5; }
+      50% { transform: scale(1.05); }
+      100% { transform: scale(1); opacity: 1; }
+    }
+    @keyframes float {
+      0%, 100% { transform: translateY(0); }
+      50% { transform: translateY(-12px); }
+    }
+    .float-anim { animation: float 3s ease-in-out infinite; }
+    @keyframes pulse-ring {
+      0% { transform: scale(0.9); opacity: 0.6; }
+      100% { transform: scale(1.4); opacity: 0; }
+    }
+    .pulse-ring { animation: pulse-ring 2s ease-out infinite; }
+    .input-glow:focus {
+      box-shadow: 0 0 0 4px rgba(139, 92, 246, 0.3);
+    }
+  </style>
+</head>
+<body>
+  <div id="root"></div>
+
+  <script src="https://unpkg.com/react@18/umd/react.production.min.js"></script>
+  <script src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js"></script>
+  <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+
+  <script type="text/babel">
+    const { useState, useEffect, useRef } = React;
+
+    /* ─── Mood Config ─── */
+    const MOODS = {
+      happy: {
+        bg: 'from-amber-300 via-yellow-200 to-orange-200',
+        accent: '#f59e0b',
+        emoji: 'Feeling sunny!',
+        eyeColor: '#1e293b',
+        mouthType: 'happy',
+        bodyColor: '#fbbf24',
+        bodyGlow: '#fde68a',
+        cheekColor: '#fb923c',
+        particleColors: ['#fbbf24', '#f59e0b', '#fb923c', '#fde68a'],
+      },
+      sad: {
+        bg: 'from-blue-400 via-indigo-300 to-slate-300',
+        accent: '#6366f1',
+        emoji: 'A little blue...',
+        eyeColor: '#1e3a5f',
+        mouthType: 'sad',
+        bodyColor: '#93c5fd',
+        bodyGlow: '#bfdbfe',
+        cheekColor: '#7dd3fc',
+        particleColors: ['#93c5fd', '#6366f1', '#818cf8', '#a5b4fc'],
+      },
+      angry: {
+        bg: 'from-red-400 via-rose-300 to-orange-300',
+        accent: '#ef4444',
+        emoji: 'Fired up!',
+        eyeColor: '#7f1d1d',
+        mouthType: 'angry',
+        bodyColor: '#f87171',
+        bodyGlow: '#fca5a5',
+        cheekColor: '#ef4444',
+        particleColors: ['#f87171', '#ef4444', '#fb923c', '#fca5a5'],
+      },
+      chill: {
+        bg: 'from-emerald-300 via-teal-200 to-cyan-200',
+        accent: '#14b8a6',
+        emoji: 'Cool and calm~',
+        eyeColor: '#134e4a',
+        mouthType: 'chill',
+        bodyColor: '#5eead4',
+        bodyGlow: '#99f6e4',
+        cheekColor: '#2dd4bf',
+        particleColors: ['#5eead4', '#14b8a6', '#2dd4bf', '#99f6e4'],
+      },
+      love: {
+        bg: 'from-pink-300 via-rose-200 to-fuchsia-200',
+        accent: '#ec4899',
+        emoji: 'Spreading love!',
+        eyeColor: '#831843',
+        mouthType: 'love',
+        bodyColor: '#f9a8d4',
+        bodyGlow: '#fbcfe8',
+        cheekColor: '#f472b6',
+        particleColors: ['#f9a8d4', '#ec4899', '#f472b6', '#fbcfe8'],
+      },
+      default: {
+        bg: 'from-violet-300 via-purple-200 to-fuchsia-200',
+        accent: '#8b5cf6',
+        emoji: 'Tell me your vibe!',
+        eyeColor: '#1e293b',
+        mouthType: 'neutral',
+        bodyColor: '#c4b5fd',
+        bodyGlow: '#ddd6fe',
+        cheekColor: '#a78bfa',
+        particleColors: ['#c4b5fd', '#8b5cf6', '#a78bfa', '#ddd6fe'],
+      },
+    };
+
+    function getMood(input) {
+      const lower = input.toLowerCase().trim();
+      if (['happy', 'joy', 'excited', 'great', 'awesome', 'yay'].some(w => lower.includes(w))) return 'happy';
+      if (['sad', 'down', 'blue', 'cry', 'upset', 'depressed'].some(w => lower.includes(w))) return 'sad';
+      if (['angry', 'mad', 'furious', 'rage', 'annoyed', 'frustrated'].some(w => lower.includes(w))) return 'angry';
+      if (['chill', 'calm', 'relax', 'zen', 'peace', 'cool'].some(w => lower.includes(w))) return 'chill';
+      if (['love', 'heart', 'crush', 'romance', 'adore'].some(w => lower.includes(w))) return 'love';
+      return lower.length > 0 ? null : 'default';
+    }
+
+    /* ─── Floating Particles ─── */
+    function Particles({ colors }) {
+      const particles = Array.from({ length: 8 }, (_, i) => ({
+        id: i,
+        x: 10 + Math.random() * 80,
+        y: 10 + Math.random() * 80,
+        size: 6 + Math.random() * 14,
+        delay: Math.random() * 3,
+        duration: 3 + Math.random() * 4,
+        color: colors[i % colors.length],
+      }));
+
+      return (
+        <div className="fixed inset-0 pointer-events-none overflow-hidden z-0">
+          {particles.map(p => (
+            <div
+              key={p.id}
+              className="absolute rounded-full opacity-30"
+              style={{
+                left: `${p.x}%`,
+                top: `${p.y}%`,
+                width: p.size,
+                height: p.size,
+                backgroundColor: p.color,
+                animation: `float ${p.duration}s ease-in-out ${p.delay}s infinite`,
+              }}
+            />
+          ))}
+        </div>
+      );
+    }
+
+    /* ─── VibeBol SVG Mascot ─── */
+    function VibeBol({ mood }) {
+      const m = MOODS[mood] || MOODS.default;
+
+      const renderMouth = () => {
+        switch (m.mouthType) {
+          case 'happy':
+            return (
+              <g>
+                <path d="M 62 105 Q 80 130 98 105" stroke={m.eyeColor} strokeWidth="3.5" fill="none" strokeLinecap="round" />
+                {/* tongue */}
+                <ellipse cx="80" cy="115" rx="7" ry="5" fill="#f87171" opacity="0.7" />
+              </g>
+            );
+          case 'sad':
+            return (
+              <g>
+                <path d="M 62 115 Q 80 95 98 115" stroke={m.eyeColor} strokeWidth="3.5" fill="none" strokeLinecap="round" />
+                {/* tear */}
+                <ellipse cx="58" cy="90" rx="3" ry="5" fill="#60a5fa" opacity="0.7">
+                  <animate attributeName="cy" values="90;120;90" dur="2.5s" repeatCount="indefinite" />
+                  <animate attributeName="opacity" values="0.7;0;0.7" dur="2.5s" repeatCount="indefinite" />
+                </ellipse>
+              </g>
+            );
+          case 'angry':
+            return (
+              <g>
+                <rect x="66" y="106" width="28" height="10" rx="2" fill={m.eyeColor} />
+                {/* angry eyebrows */}
+                <line x1="56" y1="68" x2="72" y2="74" stroke={m.eyeColor} strokeWidth="3.5" strokeLinecap="round" />
+                <line x1="104" y1="68" x2="88" y2="74" stroke={m.eyeColor} strokeWidth="3.5" strokeLinecap="round" />
+              </g>
+            );
+          case 'chill':
+            return (
+              <path d="M 65 108 Q 80 115 95 108" stroke={m.eyeColor} strokeWidth="3" fill="none" strokeLinecap="round" />
+            );
+          case 'love':
+            return (
+              <g>
+                <path d="M 62 105 Q 80 128 98 105" stroke={m.eyeColor} strokeWidth="3.5" fill="none" strokeLinecap="round" />
+                {/* floating hearts */}
+                <text x="110" y="65" fontSize="14" opacity="0.8">
+                  &#x2764;
+                  <animate attributeName="y" values="65;40;65" dur="2s" repeatCount="indefinite" />
+                  <animate attributeName="opacity" values="0.8;0.2;0.8" dur="2s" repeatCount="indefinite" />
+                </text>
+                <text x="40" y="55" fontSize="10" opacity="0.6">
+                  &#x2764;
+                  <animate attributeName="y" values="55;35;55" dur="2.5s" repeatCount="indefinite" />
+                  <animate attributeName="opacity" values="0.6;0.1;0.6" dur="2.5s" repeatCount="indefinite" />
+                </text>
+              </g>
+            );
+          default:
+            return (
+              <line x1="68" y1="108" x2="92" y2="108" stroke={m.eyeColor} strokeWidth="3" strokeLinecap="round" />
+            );
+        }
+      };
+
+      const renderEyes = () => {
+        if (m.mouthType === 'chill') {
+          // half-closed eyes
+          return (
+            <g>
+              <path d="M 56 82 Q 62 78 68 82" stroke={m.eyeColor} strokeWidth="3" fill="none" strokeLinecap="round" />
+              <path d="M 92 82 Q 98 78 104 82" stroke={m.eyeColor} strokeWidth="3" fill="none" strokeLinecap="round" />
+            </g>
+          );
+        }
+        if (m.mouthType === 'love') {
+          // heart eyes
+          return (
+            <g>
+              <text x="54" y="90" fontSize="18" fill="#ec4899">&#x2764;</text>
+              <text x="90" y="90" fontSize="18" fill="#ec4899">&#x2764;</text>
+            </g>
+          );
+        }
+        // regular eyes with blink
+        return (
+          <g>
+            <circle cx="62" cy="84" r="6" fill={m.eyeColor}>
+              <animate attributeName="ry" values="6;1;6" dur="4s" repeatCount="indefinite" begin="2s" />
+            </circle>
+            <circle cx="62" cy="82" r="2" fill="white" />
+            <circle cx="98" cy="84" r="6" fill={m.eyeColor}>
+              <animate attributeName="ry" values="6;1;6" dur="4s" repeatCount="indefinite" begin="2s" />
+            </circle>
+            <circle cx="98" cy="82" r="2" fill="white" />
+          </g>
+        );
+      };
+
+      return (
+        <svg viewBox="0 0 160 160" className="w-48 h-48 md:w-64 md:h-64 float-anim drop-shadow-2xl">
+          {/* Glow ring */}
+          <circle cx="80" cy="85" r="58" fill={m.bodyGlow} opacity="0.3" className="pulse-ring" />
+
+          {/* Body */}
+          <circle cx="80" cy="85" r="50" fill={m.bodyColor} />
+          {/* Highlight */}
+          <ellipse cx="68" cy="68" rx="18" ry="12" fill="white" opacity="0.25" transform="rotate(-20, 68, 68)" />
+
+          {/* Cheeks */}
+          <circle cx="48" cy="98" r="8" fill={m.cheekColor} opacity="0.45" />
+          <circle cx="112" cy="98" r="8" fill={m.cheekColor} opacity="0.45" />
+
+          {/* Eyes */}
+          {renderEyes()}
+
+          {/* Mouth */}
+          {renderMouth()}
+
+          {/* Little feet */}
+          <ellipse cx="65" cy="134" rx="10" ry="5" fill={m.bodyColor} opacity="0.8" />
+          <ellipse cx="95" cy="134" rx="10" ry="5" fill={m.bodyColor} opacity="0.8" />
+        </svg>
+      );
+    }
+
+    /* ─── Mood Pill Buttons ─── */
+    function MoodPills({ onSelect, currentMood }) {
+      const moods = ['happy', 'sad', 'angry', 'chill', 'love'];
+      const labels = { happy: 'Happy', sad: 'Sad', angry: 'Angry', chill: 'Chill', love: 'Love' };
+      const icons = { happy: '\u2600', sad: '\uD83C\uDF27', angry: '\uD83D\uDD25', chill: '\uD83C\uDF3F', love: '\u2764' };
+
+      return (
+        <div className="flex flex-wrap justify-center gap-2 mt-4">
+          {moods.map(mood => (
+            <button
+              key={mood}
+              onClick={() => onSelect(mood)}
+              className={`px-4 py-2 rounded-full text-sm font-semibold transition-all duration-300 border-2 backdrop-blur-sm
+                ${currentMood === mood
+                  ? 'bg-white/40 border-white/60 scale-105 shadow-lg'
+                  : 'bg-white/15 border-white/30 hover:bg-white/30 hover:scale-105'
+                }`}
+              style={{ color: MOODS[mood].accent }}
+            >
+              <span className="mr-1">{icons[mood]}</span>
+              {labels[mood]}
+            </button>
+          ))}
+        </div>
+      );
+    }
+
+    /* ─── Main App ─── */
+    function App() {
+      const [input, setInput] = useState('');
+      const [activeMood, setActiveMood] = useState('default');
+      const [showHint, setShowHint] = useState(true);
+      const inputRef = useRef(null);
+
+      useEffect(() => {
+        const detected = getMood(input);
+        if (detected) {
+          setActiveMood(detected);
+          setShowHint(false);
+        } else if (input.length > 0) {
+          // Unknown mood — stay on default but hide hint
+          setActiveMood('default');
+          setShowHint(false);
+        } else {
+          setActiveMood('default');
+          setShowHint(true);
+        }
+      }, [input]);
+
+      const handlePillClick = (mood) => {
+        setInput(mood);
+      };
+
+      const moodData = MOODS[activeMood] || MOODS.default;
+
+      return (
+        <div className={`min-h-screen bg-gradient-to-br ${moodData.bg} vibe-transition flex flex-col items-center justify-center relative overflow-hidden`}>
+          <Particles colors={moodData.particleColors} />
+
+          <div className="relative z-10 flex flex-col items-center px-4 max-w-lg w-full">
+            {/* Title */}
+            <h1 className="font-display text-5xl md:text-6xl font-bold text-white drop-shadow-lg mb-2 tracking-tight" style={{ fontFamily: 'Fredoka, sans-serif' }}>
+              VibeCheck
+            </h1>
+            <p className="text-white/70 text-sm md:text-base mb-8 font-medium">
+              Drop a mood. Watch the vibe shift.
+            </p>
+
+            {/* Mascot */}
+            <div className="bounce-in mb-6" key={activeMood}>
+              <VibeBol mood={activeMood} />
+            </div>
+
+            {/* Mood label */}
+            <p className="text-white/80 text-lg font-semibold mb-6 h-7" style={{ fontFamily: 'Fredoka, sans-serif' }}>
+              {moodData.emoji}
+            </p>
+
+            {/* Input */}
+            <div className="w-full relative">
+              <input
+                ref={inputRef}
+                type="text"
+                value={input}
+                onChange={(e) => setInput(e.target.value)}
+                placeholder="Type a mood... (happy, sad, angry, chill, love)"
+                className="w-full px-6 py-4 rounded-2xl bg-white/25 backdrop-blur-md border-2 border-white/40
+                  text-white placeholder-white/50 text-lg font-medium outline-none input-glow
+                  vibe-transition focus:bg-white/35 focus:border-white/60"
+                autoFocus
+              />
+              {input && (
+                <button
+                  onClick={() => { setInput(''); inputRef.current?.focus(); }}
+                  className="absolute right-4 top-1/2 -translate-y-1/2 w-8 h-8 rounded-full bg-white/20 hover:bg-white/40
+                    flex items-center justify-center text-white/70 hover:text-white transition-all"
+                >
+                  &times;
+                </button>
+              )}
+            </div>
+
+            {/* Mood pills */}
+            <MoodPills onSelect={handlePillClick} currentMood={activeMood} />
+
+            {/* Hint */}
+            {showHint && (
+              <p className="text-white/40 text-xs mt-6 animate-pulse">
+                Try typing &quot;happy&quot; or &quot;sad&quot; to see VibeBol react
+              </p>
+            )}
+          </div>
+
+          {/* Footer */}
+          <div className="absolute bottom-4 text-white/30 text-xs z-10">
+            Built with vibes &amp; React
+          </div>
+        </div>
+      );
+    }
+
+    ReactDOM.createRoot(document.getElementById('root')).render(<App />);
+  </script>
+</body>
+</html>
