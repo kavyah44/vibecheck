@@ -74,10 +74,29 @@
     .slide-up { animation: slideUp 0.38s cubic-bezier(0.34, 1.56, 0.64, 1) forwards; }
 
     @keyframes fadeInScale {
-      from { opacity: 0; transform: scale(0.94); }
+      from { opacity: 0; transform: scale(0.92); }
       to   { opacity: 1; transform: scale(1);    }
     }
-    .fade-in-scale { animation: fadeInScale 0.3s ease-out forwards; }
+    .fade-in-scale { animation: fadeInScale 0.32s cubic-bezier(0.34, 1.4, 0.64, 1) forwards; }
+
+    @keyframes backdropIn {
+      from { opacity: 0; }
+      to   { opacity: 1; }
+    }
+    .backdrop-in { animation: backdropIn 0.25s ease-out forwards; }
+
+    /* Vibe-shift confirm flash on Enter */
+    @keyframes vibeFlash {
+      0%   { filter: brightness(1); }
+      40%  { filter: brightness(1.25); }
+      100% { filter: brightness(1); }
+    }
+    .vibe-flash { animation: vibeFlash 0.45s ease-out forwards; }
+
+    @keyframes spin {
+      from { transform: rotate(0deg); }
+      to   { transform: rotate(360deg); }
+    }
   </style>
 </head>
 <body>
@@ -249,26 +268,24 @@
 
     /* ─────────────────────────────────────────────
        VIBE-TO-SONG MAP
-       Each mood maps to a song title + artist.
-       ↓ Paste an MP3 URL or a direct audio URL into
-         the `url` field to activate real playback.
-       YouTube watch links don't work as audio src —
-       use a direct .mp3 / .ogg / .wav URL instead.
+       query        → sent to YouTube Data API via /.netlify/functions/yt-search
+       chorusStart  → seconds into the video where the main chorus begins
+       The API key lives in Netlify env vars as YOUTUBE_API_KEY (never in client code).
     ───────────────────────────────────────────── */
     const VIBE_SONGS = {
-      happy:     { title: "Don't Stop Me Now",  artist: "Queen",               url: '' /* ← paste MP3/audio URL here */ },
-      sad:       { title: "Tum Hi Ho",           artist: "Arijit Singh",        url: '' },
-      angry:     { title: "Break Stuff",         artist: "Limp Bizkit",         url: '' },
-      chill:     { title: "Weightless",          artist: "Marconi Union",       url: '' },
-      love:      { title: "Mauja Hi Mauja",      artist: "Shankar–Ehsaan–Loy",  url: '' },
-      anxious:   { title: "Breathe (2 AM)",      artist: "Anna Nalick",         url: '' },
-      hyped:     { title: "Mauja Hi Mauja",      artist: "Shankar–Ehsaan–Loy",  url: '' },
-      bored:     { title: "Clair de Lune",       artist: "Debussy",             url: '' },
-      nostalgic: { title: "The Night We Met",    artist: "Lord Huron",          url: '' },
-      tired:     { title: "Holocene",            artist: "Bon Iver",            url: '' },
-      grateful:  { title: "Beautiful Day",       artist: "U2",                  url: '' },
-      lonely:    { title: "Imagine",             artist: "John Lennon",         url: '' },
-      default:   { title: "Good Vibes Only",     artist: "— Vibe Radio —",      url: '' },
+      happy:     { title: "Don't Stop Me Now",        artist: "Queen",                  query: "Don't Stop Me Now Queen official audio",             chorusStart: 49  },
+      sad:       { title: "Tum Hi Ho",                artist: "Arijit Singh",           query: "Tum Hi Ho Aashiqui 2 official audio",                chorusStart: 85  },
+      angry:     { title: "Believer",                  artist: "Imagine Dragons",        query: "Believer Imagine Dragons official audio",             chorusStart: 41  },
+      chill:     { title: "Weightless",               artist: "Marconi Union",          query: "Weightless Marconi Union official relaxing",          chorusStart: 0   },
+      love:      { title: "Mauja Hi Mauja",           artist: "Shankar–Ehsaan–Loy",     query: "Mauja Hi Mauja Jab We Met full song HD",             chorusStart: 43  },
+      anxious:   { title: "Stressed Out",              artist: "Twenty One Pilots",      query: "Stressed Out Twenty One Pilots official video",       chorusStart: 54  },
+      hyped:     { title: "Can't Stop the Feeling",   artist: "Justin Timberlake",      query: "Can't Stop the Feeling Justin Timberlake official",  chorusStart: 55  },
+      bored:     { title: "Bored",                     artist: "Billie Eilish",          query: "Bored Billie Eilish official audio",                  chorusStart: 42  },
+      nostalgic: { title: "Kal Ho Naa Ho",             artist: "Sonu Nigam",             query: "Kal Ho Naa Ho title track full song HD",             chorusStart: 78  },
+      tired:     { title: "The Night We Met",         artist: "Lord Huron",             query: "The Night We Met Lord Huron official audio",          chorusStart: 58  },
+      grateful:  { title: "Count on Me",               artist: "Bruno Mars",             query: "Count on Me Bruno Mars official audio",               chorusStart: 52  },
+      lonely:    { title: "Tujhe Bhula Diya",          artist: "Mohit Chauhan",          query: "Tujhe Bhula Diya Anjaana Anjaani official HD",        chorusStart: 68  },
+      default:   { title: "Good Vibes",                artist: "Vibe Radio",             query: "good vibes chill music mix",                          chorusStart: 0   },
     };
 
     /* ─────────────────────────────────────────────
@@ -467,12 +484,25 @@
     }
 
     /* ─────────────────────────────────────────────
-       VIBEBOLT SVG MASCOT — soft, borderless kawaii
-       Gradient body · no outlines · muted features
+       COLOR HELPER — derive feature color from mood
+    ───────────────────────────────────────────── */
+    function darkenColor(hex, amount) {
+      /* amount: 0–1. e.g. 0.20 = 20 % darker */
+      const h = hex.replace('#', '');
+      const r = Math.round(parseInt(h.slice(0, 2), 16) * (1 - amount));
+      const g = Math.round(parseInt(h.slice(2, 4), 16) * (1 - amount));
+      const b = Math.round(parseInt(h.slice(4, 6), 16) * (1 - amount));
+      return '#' + [r, g, b].map(v => v.toString(16).padStart(2, '0')).join('');
+    }
+
+    /* ─────────────────────────────────────────────
+       VIBEBOLT SVG MASCOT — soft, earless blob
+       Per-mood feature color · no hard black lines
     ───────────────────────────────────────────── */
     function VibeBol({ mood }) {
-      const m  = MOODS[mood] || MOODS.default;
-      const INK = '#3b4370';   /* soft dark navy — replaces harsh black */
+      const m   = MOODS[mood] || MOODS.default;
+      /* Feature colour = 28 % darker than cheekColor — naturally on-brand per mood */
+      const INK = darkenColor(m.cheekColor, 0.28);
       const gid = `g${mood}`;  /* unique gradient id per mood */
 
       /* ── Eyes ── */
@@ -697,220 +727,126 @@
     }
 
     /* ─────────────────────────────────────────────
-       SONG TOAST
-       Appears ~1.8s after a new mood is detected.
-       Suggests a matching song and asks to play.
+       SONG MODAL — centered overlay, three phases:
+         'asking'  → show song suggestion + Yes/Skip
+         'loading' → spinner while YouTube API runs
+         'playing' → embedded YouTube iframe
     ───────────────────────────────────────────── */
-    function SongToast({ mood, onYes, onDismiss }) {
-      const song = VIBE_SONGS[mood];
-      const m    = MOODS[mood] || MOODS.default;
-      if (!song) return null;
-      return (
-        <div className="fixed bottom-24 left-1/2 z-50 w-80 max-w-[calc(100vw-2rem)] slide-up"
-             style={{ transform: 'translateX(-50%)' }}>
-          <div className="rounded-2xl border border-white/30 shadow-2xl px-5 py-4"
-               style={{ background: 'rgba(255,255,255,0.20)', backdropFilter: 'blur(20px)' }}>
+    function SongModal({ mood, phase, videoId, videoTitle, error, onYes, onClose }) {
+      const song = VIBE_SONGS[mood] || VIBE_SONGS.default;
+      const m    = MOODS[mood]      || MOODS.default;
 
-            {/* Header */}
-            <div className="flex items-start justify-between mb-2">
-              <p className="text-white font-bold text-sm leading-snug"
-                 style={{ fontFamily: 'Fredoka, sans-serif', textShadow: '0 1px 6px rgba(0,0,0,0.3)' }}>
-                🎵 Want a song for this vibe?
-              </p>
-              <button onClick={onDismiss}
-                      className="text-white/40 hover:text-white/80 text-lg leading-none ml-3 transition-colors">
-                ×
-              </button>
-            </div>
-
-            {/* Song info */}
-            <div className="mb-3 pl-1">
-              <p className="text-white font-semibold text-sm"
-                 style={{ textShadow: '0 1px 4px rgba(0,0,0,0.25)' }}>
-                {song.title}
-              </p>
-              <p className="text-white/60 text-xs">{song.artist}</p>
-            </div>
-
-            {/* Buttons */}
-            <div className="flex gap-2">
-              <button
-                onClick={onYes}
-                className="flex-1 py-2 rounded-xl font-bold text-sm text-white transition-all
-                           hover:scale-105 active:scale-95"
-                style={{ background: 'rgba(255,255,255,0.28)', backdropFilter: 'blur(8px)',
-                         boxShadow: `0 0 16px ${m.accent}55` }}
-              >
-                ▶ Yes, play it!
-              </button>
-              <button
-                onClick={onDismiss}
-                className="px-4 py-2 rounded-xl text-sm text-white/60 hover:text-white/90
-                           transition-all hover:bg-white/10"
-              >
-                Skip
-              </button>
-            </div>
-          </div>
-        </div>
-      );
-    }
-
-    /* ─────────────────────────────────────────────
-       AUDIO PLAYER
-       Shows after "Yes" is clicked on the toast.
-       Uses HTML5 <audio> — works with any direct
-       MP3/OGG/WAV URL pasted into VIBE_SONGS above.
-    ───────────────────────────────────────────── */
-    function AudioPlayer({ mood, onClose }) {
-      const [playing,  setPlaying]  = useState(false);
-      const [progress, setProgress] = useState(0);
-      const [elapsed,  setElapsed]  = useState(0);
-      const [total,    setTotal]    = useState(0);
-      const audioRef       = useRef(null);
-      const intervalRef    = useRef(null);
-
-      const song   = VIBE_SONGS[mood] || VIBE_SONGS.default;
-      const m      = MOODS[mood]      || MOODS.default;
-      const hasUrl = !!song.url;
-
-      /* Format seconds → m:ss */
-      const fmt = s => `${Math.floor(s/60)}:${String(Math.floor(s%60)).padStart(2,'0')}`;
-
-      /* Sync audio metadata */
-      const handleMeta = () => {
-        if (audioRef.current) setTotal(audioRef.current.duration || 0);
-      };
-
-      const clearTick = () => clearInterval(intervalRef.current);
-
-      const startTick = () => {
-        clearTick();
-        intervalRef.current = setInterval(() => {
-          if (!audioRef.current) return;
-          const cur = audioRef.current.currentTime;
-          const dur = audioRef.current.duration || 1;
-          setElapsed(cur);
-          setProgress((cur / dur) * 100);
-          if (cur >= dur) { clearTick(); setPlaying(false); setProgress(100); }
-        }, 250);
-      };
-
-      const togglePlay = () => {
-        if (!hasUrl || !audioRef.current) return;
-        if (playing) {
-          audioRef.current.pause();
-          clearTick();
-          setPlaying(false);
-        } else {
-          audioRef.current.play().catch(() => {});
-          startTick();
-          setPlaying(true);
-        }
-      };
-
-      /* Seek by clicking progress bar */
-      const handleSeek = (e) => {
-        if (!hasUrl || !audioRef.current) return;
-        const rect = e.currentTarget.getBoundingClientRect();
-        const pct  = Math.max(0, Math.min(1, (e.clientX - rect.left) / rect.width));
-        audioRef.current.currentTime = pct * (audioRef.current.duration || 0);
-        setProgress(pct * 100);
-      };
-
-      /* Reset when mood changes, cleanup on unmount */
-      useEffect(() => {
-        clearTick();
-        if (audioRef.current) { audioRef.current.pause(); audioRef.current.currentTime = 0; }
-        setPlaying(false);
-        setProgress(0);
-        setElapsed(0);
-      }, [mood]);
-
-      useEffect(() => () => { clearTick(); audioRef.current?.pause(); }, []);
+      /* YouTube embed — chorus window is chorusStart → chorusStart + 75s */
+      const start = song.chorusStart || 0;
+      const end   = start + 75;
+      const ytSrc = videoId
+        ? `https://www.youtube.com/embed/${videoId}?autoplay=1&start=${start}&end=${end}&modestbranding=1&rel=0&showinfo=0`
+        : null;
 
       return (
-        <div className="fixed bottom-6 left-1/2 z-40 w-80 max-w-[calc(100vw-2rem)] fade-in-scale"
-             style={{ transform: 'translateX(-50%)' }}>
-          {hasUrl && (
-            <audio ref={audioRef} src={song.url} preload="metadata" onLoadedMetadata={handleMeta} />
-          )}
-          <div className="rounded-2xl border border-white/30 shadow-2xl px-5 py-4"
-               style={{ background: 'rgba(255,255,255,0.22)', backdropFilter: 'blur(22px)' }}>
+        /* ── Backdrop ── */
+        <div className="fixed inset-0 z-50 flex items-center justify-center backdrop-in"
+             style={{ background: 'rgba(0,0,0,0.45)', backdropFilter: 'blur(6px)' }}
+             onClick={phase === 'asking' ? onClose : undefined}>
 
-            {/* Header row */}
-            <div className="flex items-start justify-between mb-3">
+          {/* ── Modal card ── */}
+          <div
+            className="relative w-80 max-w-[calc(100vw-2rem)] rounded-3xl overflow-hidden fade-in-scale"
+            style={{
+              background:   'rgba(15,10,30,0.72)',
+              backdropFilter: 'blur(28px)',
+              border:       '1px solid rgba(255,255,255,0.18)',
+              boxShadow:    `0 30px 60px rgba(0,0,0,0.55), 0 0 0 1px rgba(255,255,255,0.06), 0 0 40px ${m.accent}33`,
+            }}
+            onClick={e => e.stopPropagation()}
+          >
+            {/* ── Header bar (always visible) ── */}
+            <div className="flex items-center justify-between px-5 pt-5 pb-3">
               <div className="flex items-center gap-2">
-                <span className="text-lg">🎵</span>
+                <span className="text-base">🎵</span>
                 <div>
                   <p className="text-white font-bold text-sm leading-tight"
-                     style={{ fontFamily: 'Fredoka, sans-serif', textShadow: '0 1px 6px rgba(0,0,0,0.3)' }}>
-                    {song.title}
+                     style={{ fontFamily: 'Fredoka, sans-serif' }}>
+                    {phase === 'playing' && videoTitle ? videoTitle : song.title}
                   </p>
-                  <p className="text-white/55 text-xs">{song.artist}</p>
+                  <p className="text-white/50 text-xs">{song.artist}</p>
                 </div>
               </div>
-              <button onClick={onClose}
-                      className="text-white/40 hover:text-white/90 text-xl leading-none ml-2 transition-colors">
+              <button
+                onClick={onClose}
+                className="w-7 h-7 rounded-full bg-white/10 hover:bg-white/25 flex items-center justify-center
+                           text-white/60 hover:text-white transition-all text-base leading-none"
+              >
                 ×
               </button>
             </div>
 
-            {/* Progress bar — clickable */}
-            <div
-              className="relative h-2 bg-white/20 rounded-full mb-2 overflow-hidden cursor-pointer group"
-              onClick={handleSeek}
-            >
-              <div
-                className="h-full rounded-full transition-all duration-200"
-                style={{ width: `${progress}%`, background: m.accent,
-                         boxShadow: `0 0 8px ${m.accent}99` }}
-              />
-              {/* Thumb dot */}
-              <div
-                className="absolute top-1/2 -translate-y-1/2 w-3 h-3 rounded-full bg-white shadow-md
-                           opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none"
-                style={{ left: `calc(${progress}% - 6px)` }}
-              />
-            </div>
-
-            {/* Time display */}
-            <div className="flex justify-between text-white/40 text-xs mb-3">
-              <span>{fmt(elapsed)}</span>
-              <span>{total > 0 ? fmt(total) : '--:--'}</span>
-            </div>
-
-            {/* Controls row */}
-            <div className="flex items-center gap-3">
-              {/* Play / Pause */}
-              <button
-                onClick={togglePlay}
-                disabled={!hasUrl}
-                className={`w-11 h-11 rounded-full flex items-center justify-center text-lg font-bold
-                            transition-all
-                            ${hasUrl
-                              ? 'text-white hover:scale-110 active:scale-95'
-                              : 'text-white/25 cursor-not-allowed'}`}
-                style={hasUrl ? { background: m.accent,
-                                  boxShadow: `0 0 20px ${m.accent}88` } : { background: 'rgba(255,255,255,0.12)' }}
-              >
-                {playing ? '⏸' : '▶'}
-              </button>
-
-              {/* Status text */}
-              <div className="flex-1 min-w-0">
-                {hasUrl ? (
-                  <p className="text-white/60 text-xs truncate">
-                    {playing ? 'Now playing…' : 'Tap ▶ to play'}
-                  </p>
-                ) : (
-                  <p className="text-white/35 text-xs leading-snug italic">
-                    Paste a URL in VIBE_SONGS['{mood}'] to activate ✦
-                  </p>
-                )}
+            {/* ── Phase: asking ── */}
+            {phase === 'asking' && (
+              <div className="px-5 pb-5">
+                <p className="text-white/70 text-xs mb-4 leading-relaxed">
+                  Vibe detected ✦ Want to hear the chorus?
+                </p>
+                <div className="flex gap-2">
+                  <button
+                    onClick={onYes}
+                    className="flex-1 py-2.5 rounded-xl font-bold text-sm text-white transition-all
+                               hover:scale-105 active:scale-95"
+                    style={{
+                      background: `linear-gradient(135deg, ${m.accent}cc, ${m.accent}88)`,
+                      boxShadow:  `0 0 20px ${m.accent}66`,
+                    }}
+                  >
+                    ▶ Yes, play it!
+                  </button>
+                  <button
+                    onClick={onClose}
+                    className="px-4 py-2.5 rounded-xl text-sm text-white/55 hover:text-white/90
+                               transition-all hover:bg-white/10 border border-white/10"
+                  >
+                    Skip
+                  </button>
+                </div>
               </div>
-            </div>
+            )}
 
+            {/* ── Phase: loading ── */}
+            {phase === 'loading' && (
+              <div className="flex flex-col items-center gap-3 px-5 pb-6 pt-2">
+                {/* Spinner */}
+                <div
+                  className="w-10 h-10 rounded-full border-2 border-white/20 border-t-white/80"
+                  style={{ animation: 'spin 0.85s linear infinite' }}
+                />
+                <p className="text-white/55 text-xs">Finding your vibe song…</p>
+              </div>
+            )}
+
+            {/* ── Phase: error ── */}
+            {phase === 'error' && (
+              <div className="px-5 pb-5 pt-1">
+                <p className="text-white/50 text-xs text-center leading-relaxed">{error || 'Could not find a song. Try again!'}</p>
+              </div>
+            )}
+
+            {/* ── Phase: playing — YouTube iframe ── */}
+            {phase === 'playing' && ytSrc && (
+              <div>
+                <iframe
+                  key={videoId}
+                  src={ytSrc}
+                  width="100%"
+                  height="190"
+                  frameBorder="0"
+                  allow="autoplay; encrypted-media; picture-in-picture"
+                  allowFullScreen
+                  style={{ display: 'block' }}
+                />
+                <p className="text-white/35 text-xs text-center py-2.5">
+                  ♫ Playing chorus • ~75 sec
+                </p>
+              </div>
+            )}
           </div>
         </div>
       );
@@ -920,17 +856,23 @@
        MAIN APP
     ───────────────────────────────────────────── */
     function App() {
-      const [input,        setInput]        = useState('');
-      const [activeMood,   setActiveMood]   = useState('default');
-      const [showHint,     setShowHint]     = useState(true);
-      const [toastVisible, setToastVisible] = useState(false);
-      const [playerVisible,setPlayerVisible]= useState(false);
+      const [input,      setInput]      = useState('');
+      const [activeMood, setActiveMood] = useState('default');
+      const [showHint,   setShowHint]   = useState(true);
+      const [flashKey,   setFlashKey]   = useState(0);   /* bumped on Enter to re-trigger flash */
 
-      const inputRef        = useRef(null);
-      const toastTimerRef   = useRef(null);
-      const lastToastMood   = useRef('default'); // track which mood last triggered the toast
+      /*
+        modal.phase: 'hidden' | 'asking' | 'loading' | 'playing' | 'error'
+        modal.videoId / videoTitle: filled after successful YouTube search
+        modal.error: error message string
+      */
+      const [modal, setModal] = useState({ phase: 'hidden', videoId: null, videoTitle: null, error: null });
 
-      /* ── Mood detection from input ── */
+      const inputRef       = useRef(null);
+      const toastTimerRef  = useRef(null);
+      const lastModalMood  = useRef('default');
+
+      /* ── Real-time mood detection ── */
       useEffect(() => {
         const detected = getMood(input);
         if (detected) {
@@ -945,38 +887,61 @@
         }
       }, [input]);
 
-      /* ── Toast scheduling: fires 1.8s after a NEW non-default mood ── */
+      /* ── Schedule song modal ~1.8s after a NEW non-default mood ── */
       useEffect(() => {
         clearTimeout(toastTimerRef.current);
 
-        if (activeMood !== 'default' && activeMood !== lastToastMood.current) {
-          // New mood detected — dismiss old toast, schedule fresh one
-          setToastVisible(false);
+        if (activeMood !== 'default' && activeMood !== lastModalMood.current) {
+          /* Close any open modal for the previous mood */
+          setModal({ phase: 'hidden', videoId: null, videoTitle: null, error: null });
           toastTimerRef.current = setTimeout(() => {
-            lastToastMood.current = activeMood;
-            setToastVisible(true);
+            lastModalMood.current = activeMood;
+            setModal(prev => prev.phase === 'hidden'
+              ? { phase: 'asking', videoId: null, videoTitle: null, error: null }
+              : prev   /* don't interrupt playing */
+            );
           }, 1800);
         } else if (activeMood === 'default') {
-          lastToastMood.current = 'default';
-          setToastVisible(false);
-          // Keep player open — let user close it manually
+          lastModalMood.current = 'default';
+          /* Leave playing modal open (user might still be listening) */
+          setModal(prev => prev.phase === 'asking' ? { ...prev, phase: 'hidden' } : prev);
         }
 
         return () => clearTimeout(toastTimerRef.current);
       }, [activeMood]);
 
+      /* ── YouTube search via Netlify Function ── */
+      const handleYes = useCallback(async () => {
+        const song = VIBE_SONGS[activeMood] || VIBE_SONGS.default;
+        setModal(prev => ({ ...prev, phase: 'loading' }));
+        try {
+          const res  = await fetch(`/.netlify/functions/yt-search?q=${encodeURIComponent(song.query)}`);
+          const data = await res.json();
+          if (!res.ok || !data.videoId) throw new Error(data.error || 'No video found');
+          setModal({ phase: 'playing', videoId: data.videoId, videoTitle: data.title, error: null });
+        } catch (err) {
+          setModal({ phase: 'error', videoId: null, videoTitle: null, error: err.message });
+        }
+      }, [activeMood]);
+
+      const handleModalClose = useCallback(() =>
+        setModal({ phase: 'hidden', videoId: null, videoTitle: null, error: null }), []);
+
+      /* ── Pill click ── */
       const handlePillClick = useCallback((mood) => {
         setInput(mood);
         inputRef.current?.focus();
       }, []);
 
-      const handleToastYes = () => {
-        setToastVisible(false);
-        setPlayerVisible(true);
-      };
-
-      const handleToastDismiss = () => setToastVisible(false);
-      const handlePlayerClose  = () => setPlayerVisible(false);
+      /* ── Enter key → confirm vibe shift with flash animation ── */
+      const handleKeyDown = useCallback((e) => {
+        if (e.key === 'Enter') {
+          e.preventDefault();
+          setFlashKey(k => k + 1);   /* triggers vibe-flash via key-driven re-mount */
+          inputRef.current?.blur();
+          setTimeout(() => inputRef.current?.focus(), 50);
+        }
+      }, []);
 
       const m = MOODS[activeMood] || MOODS.default;
 
@@ -987,14 +952,21 @@
         >
           <Particles colors={m.particleColors} moodKey={activeMood} key={activeMood} />
 
+          {/* ── Flash overlay on Enter ── */}
+          <div
+            key={flashKey}
+            className={flashKey > 0 ? 'vibe-flash' : ''}
+            style={{ position: 'fixed', inset: 0, pointerEvents: 'none', zIndex: 5 }}
+          />
+
           <div className="relative z-10 flex flex-col items-center px-4 max-w-lg w-full">
 
             {/* Title */}
             <h1
               className="text-5xl md:text-6xl font-bold text-white mb-1 tracking-tight"
               style={{
-                fontFamily:  'Fredoka, sans-serif',
-                textShadow:  '0 2px 24px rgba(0,0,0,0.45), 0 0 60px rgba(0,0,0,0.2)',
+                fontFamily: 'Fredoka, sans-serif',
+                textShadow: '0 2px 24px rgba(0,0,0,0.45), 0 0 60px rgba(0,0,0,0.2)',
               }}
             >
               VibeCheck
@@ -1027,7 +999,8 @@
                 type="text"
                 value={input}
                 onChange={(e) => setInput(e.target.value)}
-                placeholder="Type how you feel..."
+                onKeyDown={handleKeyDown}
+                placeholder="Type how you feel… then hit Enter ✦"
                 className="w-full px-6 py-4 rounded-2xl border-2 border-white/55 outline-none input-glow
                   vibe-transition text-white placeholder-white/40 text-lg font-semibold
                   focus:border-white/80"
@@ -1061,29 +1034,22 @@
             )}
           </div>
 
-          {/* Song Toast */}
-          {toastVisible && (
-            <SongToast
+          {/* Song Modal (all phases) */}
+          {modal.phase !== 'hidden' && (
+            <SongModal
               mood={activeMood}
-              onYes={handleToastYes}
-              onDismiss={handleToastDismiss}
+              phase={modal.phase}
+              videoId={modal.videoId}
+              videoTitle={modal.videoTitle}
+              error={modal.error}
+              onYes={handleYes}
+              onClose={handleModalClose}
             />
           )}
 
-          {/* Audio Player */}
-          {playerVisible && (
-            <AudioPlayer
-              mood={activeMood}
-              onClose={handlePlayerClose}
-            />
-          )}
-
-          {/* Footer — pushed up when player is visible */}
-          <div
-            className={`absolute text-white/30 text-xs z-10 font-medium transition-all duration-300
-                        ${playerVisible ? 'bottom-[calc(theme(spacing.6)+7rem)]' : 'bottom-4'}`}
-            style={{ textShadow: '0 1px 4px rgba(0,0,0,0.3)' }}
-          >
+          {/* Footer */}
+          <div className="absolute bottom-4 text-white/30 text-xs z-10 font-medium"
+               style={{ textShadow: '0 1px 4px rgba(0,0,0,0.3)' }}>
             Built with vibes &amp; React
           </div>
         </div>
