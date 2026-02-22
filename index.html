@@ -53,11 +53,11 @@
       box-shadow: 0 0 0 4px rgba(255,255,255,0.22), 0 0 28px rgba(255,255,255,0.12);
     }
 
-    /* Mascot shadow — makes it pop off any background */
+    /* Mascot — soft shadow only, no hard border */
     .mascot-pop {
       filter:
-        drop-shadow(0 0 18px rgba(0,0,0,0.55))
-        drop-shadow(0 6px 32px rgba(0,0,0,0.45));
+        drop-shadow(0 8px 28px rgba(0,0,0,0.18))
+        drop-shadow(0 2px 8px rgba(0,0,0,0.10));
     }
 
     @keyframes wiggle {
@@ -431,20 +431,20 @@
     }
 
     /* ─────────────────────────────────────────────
-       VIBEBOLT SVG MASCOT — kawaii redesign
-       Bear ears · big sparkle eyes · button nose
-       White oval body · no arms
+       VIBEBOLT SVG MASCOT — soft, borderless kawaii
+       Gradient body · no outlines · muted features
     ───────────────────────────────────────────── */
     function VibeBol({ mood }) {
-      const m = MOODS[mood] || MOODS.default;
-      const DARK = '#0f172a';
+      const m  = MOODS[mood] || MOODS.default;
+      const INK = '#3b4370';   /* soft dark navy — replaces harsh black */
+      const gid = `g${mood}`;  /* unique gradient id per mood */
 
       /* ── Eyes ── */
       const Eyes = () => {
         if (m.eyeType === 'half') return (
           <g>
-            <path d="M 52 80 Q 63 72 74 80" stroke={DARK} strokeWidth="4" fill="none" strokeLinecap="round" />
-            <path d="M 86 80 Q 97 72 108 80" stroke={DARK} strokeWidth="4" fill="none" strokeLinecap="round" />
+            <path d="M 52 80 Q 63 72 74 80" stroke={INK} strokeWidth="3.5" fill="none" strokeLinecap="round" />
+            <path d="M 86 80 Q 97 72 108 80" stroke={INK} strokeWidth="3.5" fill="none" strokeLinecap="round" />
           </g>
         );
         if (m.eyeType === 'heart') return (
@@ -455,43 +455,41 @@
         );
         if (m.eyeType === 'wide') return (
           <g>
-            <circle cx="63" cy="80" r="11" fill={DARK}>
+            <circle cx="63" cy="80" r="11" fill={INK}>
               <animate attributeName="r" values="11;8;11" dur="0.6s" repeatCount="indefinite" />
             </circle>
-            <circle cx="58" cy="75" r="4"   fill="white" />
-            <circle cx="68" cy="76" r="2"   fill="white" />
-            <circle cx="97" cy="80" r="11" fill={DARK}>
+            <circle cx="58" cy="75" r="4"  fill="white" />
+            <circle cx="68" cy="76" r="2"  fill="white" />
+            <circle cx="97" cy="80" r="11" fill={INK}>
               <animate attributeName="r" values="11;8;11" dur="0.6s" repeatCount="indefinite" />
             </circle>
-            <circle cx="92" cy="75" r="4"   fill="white" />
-            <circle cx="102" cy="76" r="2"  fill="white" />
+            <circle cx="92" cy="75" r="4"  fill="white" />
+            <circle cx="102" cy="76" r="2" fill="white" />
           </g>
         );
         if (m.eyeType === 'curious') return (
           <g>
-            <ellipse cx="63" cy="80" rx="9.5" ry="11" fill={DARK}>
+            <ellipse cx="63" cy="80" rx="9.5" ry="11" fill={INK}>
               <animate attributeName="ry" values="11;1;11" dur="5s" repeatCount="indefinite" begin="2s" />
             </ellipse>
             <circle cx="58" cy="75" r="4"  fill="white" />
             <circle cx="68" cy="76" r="2"  fill="white" />
-            <ellipse cx="97" cy="80" rx="9.5" ry="11" fill={DARK}>
+            <ellipse cx="97" cy="80" rx="9.5" ry="11" fill={INK}>
               <animate attributeName="ry" values="11;1;11" dur="5s" repeatCount="indefinite" begin="2s" />
             </ellipse>
             <circle cx="92" cy="75" r="4"  fill="white" />
             <circle cx="102" cy="76" r="2" fill="white" />
-            {/* one raised eyebrow */}
-            <path d="M 52 67 Q 63 60 74 65" stroke={DARK} strokeWidth="2.5" fill="none" strokeLinecap="round" />
+            <path d="M 52 67 Q 63 60 74 65" stroke={INK} strokeWidth="2" fill="none" strokeLinecap="round" />
           </g>
         );
-        /* normal — sparkle highlights + blink */
         return (
           <g>
-            <ellipse cx="63" cy="80" rx="9.5" ry="11" fill={DARK}>
+            <ellipse cx="63" cy="80" rx="9.5" ry="11" fill={INK}>
               <animate attributeName="ry" values="11;1;11" dur="4.5s" repeatCount="indefinite" begin="2s" />
             </ellipse>
             <circle cx="58" cy="75" r="4"  fill="white" />
             <circle cx="68" cy="76" r="2"  fill="white" />
-            <ellipse cx="97" cy="80" rx="9.5" ry="11" fill={DARK}>
+            <ellipse cx="97" cy="80" rx="9.5" ry="11" fill={INK}>
               <animate attributeName="ry" values="11;1;11" dur="4.5s" repeatCount="indefinite" begin="2s" />
             </ellipse>
             <circle cx="92" cy="75" r="4"  fill="white" />
@@ -505,24 +503,24 @@
         switch (m.mouthType) {
           case 'happy': return (
             <g>
-              <path d="M 55 109 Q 80 135 105 109" stroke={DARK} strokeWidth="4" fill="none" strokeLinecap="round" />
-              <ellipse cx="80" cy="120" rx="12" ry="8" fill="#fca5a5" opacity="0.85" />
+              <path d="M 55 109 Q 80 135 105 109" stroke={INK} strokeWidth="3.5" fill="none" strokeLinecap="round" />
+              <ellipse cx="80" cy="120" rx="12" ry="8" fill="#fca5a5" opacity="0.8" />
             </g>
           );
           case 'sad': return (
             <g>
-              <path d="M 57 122 Q 80 101 103 122" stroke={DARK} strokeWidth="4" fill="none" strokeLinecap="round" />
-              <ellipse cx="51" cy="88" rx="4" ry="6.5" fill="#93c5fd" opacity="0.95">
+              <path d="M 57 122 Q 80 101 103 122" stroke={INK} strokeWidth="3.5" fill="none" strokeLinecap="round" />
+              <ellipse cx="51" cy="88" rx="4" ry="6.5" fill="#93c5fd" opacity="0.9">
                 <animate attributeName="cy" values="88;130;88" dur="2.3s" repeatCount="indefinite" />
-                <animate attributeName="opacity" values="0.95;0;0.95" dur="2.3s" repeatCount="indefinite" />
+                <animate attributeName="opacity" values="0.9;0;0.9" dur="2.3s" repeatCount="indefinite" />
               </ellipse>
             </g>
           );
           case 'angry': return (
             <g>
-              <line x1="51" y1="67" x2="72" y2="76" stroke={DARK} strokeWidth="5" strokeLinecap="round" />
-              <line x1="109" y1="67" x2="88" y2="76" stroke={DARK} strokeWidth="5" strokeLinecap="round" />
-              <rect x="61" y="110" width="38" height="13" rx="4" fill={DARK} />
+              <path d="M 51 67 Q 61 73 72 70" stroke={INK} strokeWidth="4" fill="none" strokeLinecap="round" />
+              <path d="M 109 67 Q 99 73 88 70" stroke={INK} strokeWidth="4" fill="none" strokeLinecap="round" />
+              <rect x="61" y="110" width="38" height="13" rx="4" fill={INK} opacity="0.85" />
               <rect x="63" y="111" width="7" height="11" rx="2" fill="white" opacity="0.9" />
               <rect x="72" y="111" width="7" height="11" rx="2" fill="white" opacity="0.9" />
               <rect x="81" y="111" width="7" height="11" rx="2" fill="white" opacity="0.9" />
@@ -532,97 +530,101 @@
           case 'anxious': return (
             <g>
               <path d="M 61 114 Q 67 106 74 114 Q 81 122 88 114 Q 95 106 101 114"
-                stroke={DARK} strokeWidth="3.5" fill="none" strokeLinecap="round" />
-              <ellipse cx="116" cy="76" rx="4.5" ry="7" fill="#c4b5fd" opacity="0.95">
+                stroke={INK} strokeWidth="3" fill="none" strokeLinecap="round" />
+              <ellipse cx="116" cy="76" rx="4" ry="6.5" fill="#c4b5fd" opacity="0.9">
                 <animate attributeName="cy" values="76;110;76" dur="1.7s" repeatCount="indefinite" />
-                <animate attributeName="opacity" values="0.95;0;0.95" dur="1.7s" repeatCount="indefinite" />
+                <animate attributeName="opacity" values="0.9;0;0.9" dur="1.7s" repeatCount="indefinite" />
               </ellipse>
             </g>
           );
           case 'tired': return (
             <g>
-              <path d="M 64 115 Q 80 124 96 115" stroke={DARK} strokeWidth="3.5" fill="none" strokeLinecap="round" />
-              <text x="108" y="72" fontSize="14" fill="#a78bfa" fontWeight="bold" opacity="0.9">
+              <path d="M 64 115 Q 80 124 96 115" stroke={INK} strokeWidth="3" fill="none" strokeLinecap="round" />
+              <text x="108" y="72" fontSize="14" fill="#a78bfa" fontWeight="bold" opacity="0.85">
                 Z
-                <animate attributeName="y"       values="72;52;72"    dur="2.2s" repeatCount="indefinite" />
-                <animate attributeName="opacity" values="0.9;0.1;0.9" dur="2.2s" repeatCount="indefinite" />
+                <animate attributeName="y"       values="72;52;72"     dur="2.2s" repeatCount="indefinite" />
+                <animate attributeName="opacity" values="0.85;0.1;0.85" dur="2.2s" repeatCount="indefinite" />
               </text>
-              <text x="119" y="61" fontSize="10" fill="#c4b5fd" opacity="0.7">
+              <text x="119" y="61" fontSize="10" fill="#c4b5fd" opacity="0.65">
                 z
-                <animate attributeName="y"       values="61;45;61"    dur="2.2s" begin="0.4s" repeatCount="indefinite" />
-                <animate attributeName="opacity" values="0.7;0.1;0.7" dur="2.2s" begin="0.4s" repeatCount="indefinite" />
+                <animate attributeName="y"       values="61;45;61"      dur="2.2s" begin="0.4s" repeatCount="indefinite" />
+                <animate attributeName="opacity" values="0.65;0.1;0.65" dur="2.2s" begin="0.4s" repeatCount="indefinite" />
               </text>
             </g>
           );
           case 'love': return (
             <g>
-              <path d="M 55 109 Q 80 135 105 109" stroke={DARK} strokeWidth="4" fill="none" strokeLinecap="round" />
-              <text x="113" y="68" fontSize="18" fill={m.cheekColor} opacity="0.95">
+              <path d="M 55 109 Q 80 135 105 109" stroke={INK} strokeWidth="3.5" fill="none" strokeLinecap="round" />
+              <text x="113" y="68" fontSize="18" fill={m.cheekColor} opacity="0.9">
                 &#x2764;
-                <animate attributeName="y"       values="68;44;68"      dur="1.9s" repeatCount="indefinite" />
-                <animate attributeName="opacity" values="0.95;0.1;0.95" dur="1.9s" repeatCount="indefinite" />
+                <animate attributeName="y"       values="68;44;68"    dur="1.9s" repeatCount="indefinite" />
+                <animate attributeName="opacity" values="0.9;0.1;0.9" dur="1.9s" repeatCount="indefinite" />
               </text>
-              <text x="34" y="59" fontSize="13" fill={m.cheekColor} opacity="0.7">
+              <text x="34" y="59" fontSize="13" fill={m.cheekColor} opacity="0.65">
                 &#x2764;
-                <animate attributeName="y"       values="59;37;59"    dur="2.5s" repeatCount="indefinite" />
-                <animate attributeName="opacity" values="0.7;0.1;0.7" dur="2.5s" repeatCount="indefinite" />
+                <animate attributeName="y"       values="59;37;59"     dur="2.5s" repeatCount="indefinite" />
+                <animate attributeName="opacity" values="0.65;0.1;0.65" dur="2.5s" repeatCount="indefinite" />
               </text>
             </g>
           );
           case 'chill': return (
-            <path d="M 63 111 Q 80 120 97 111" stroke={DARK} strokeWidth="3.5" fill="none" strokeLinecap="round" />
+            <path d="M 63 111 Q 80 120 97 111" stroke={INK} strokeWidth="3" fill="none" strokeLinecap="round" />
           );
           case 'asking': return (
             <g>
-              <ellipse cx="80" cy="114" rx="8.5" ry="7" fill={DARK} />
-              <ellipse cx="80" cy="114" rx="5.5" ry="4.5" fill="white" opacity="0.5" />
-              <text x="110" y="58" fontSize="22" fill={m.cheekColor} fontWeight="bold" opacity="0.9">
+              <ellipse cx="80" cy="114" rx="8" ry="6.5" fill={INK} opacity="0.85" />
+              <ellipse cx="80" cy="114" rx="5.5" ry="4.5" fill="white" opacity="0.55" />
+              <text x="110" y="58" fontSize="22" fill={m.accent} fontWeight="bold" opacity="0.85">
                 ?
-                <animate attributeName="y"       values="58;46;58"    dur="2s" repeatCount="indefinite" />
-                <animate attributeName="opacity" values="0.9;0.3;0.9" dur="2s" repeatCount="indefinite" />
+                <animate attributeName="y"       values="58;46;58"     dur="2s" repeatCount="indefinite" />
+                <animate attributeName="opacity" values="0.85;0.2;0.85" dur="2s" repeatCount="indefinite" />
               </text>
             </g>
           );
           default: return (
-            <line x1="68" y1="111" x2="92" y2="111" stroke={DARK} strokeWidth="3.5" strokeLinecap="round" />
+            <line x1="68" y1="111" x2="92" y2="111" stroke={INK} strokeWidth="3" strokeLinecap="round" />
           );
         }
       };
 
       return (
         <svg viewBox="0 0 160 162" className="w-52 h-52 md:w-72 md:h-72 float-anim mascot-pop">
+          <defs>
+            {/* Radial gradient: bright white centre → soft mood tint at edge */}
+            <radialGradient id={gid} cx="38%" cy="32%" r="68%" gradientUnits="objectBoundingBox">
+              <stop offset="0%"   stopColor="#ffffff" stopOpacity="1" />
+              <stop offset="100%" stopColor={m.bodyGlow} stopOpacity="0.7" />
+            </radialGradient>
+          </defs>
 
-          {/* Glow ring */}
-          <ellipse cx="80" cy="92" rx="62" ry="58" fill={m.bodyGlow} opacity="0.38" className="pulse-ring" />
-          {/* Dark backing */}
-          <ellipse cx="80" cy="92" rx="57" ry="53" fill={DARK} opacity="0.14" />
+          {/* Soft pulsing glow */}
+          <ellipse cx="80" cy="92" rx="60" ry="56" fill={m.bodyGlow} opacity="0.32" className="pulse-ring" />
 
-          {/* ── Bear ears — drawn BEFORE body so body covers their base ── */}
-          <circle cx="47" cy="38" r="18" fill="#ffffff" stroke={DARK} strokeWidth="3" />
-          <circle cx="47" cy="38" r="12" fill={m.cheekColor} opacity="0.60" />
-          <circle cx="113" cy="38" r="18" fill="#ffffff" stroke={DARK} strokeWidth="3" />
-          <circle cx="113" cy="38" r="12" fill={m.cheekColor} opacity="0.60" />
+          {/* Bear ears — BEFORE body so body naturally covers root */}
+          <circle cx="47"  cy="38" r="18" fill={`url(#${gid})`} />
+          <circle cx="47"  cy="38" r="12" fill={m.cheekColor} opacity="0.50" />
+          <circle cx="113" cy="38" r="18" fill={`url(#${gid})`} />
+          <circle cx="113" cy="38" r="12" fill={m.cheekColor} opacity="0.50" />
 
-          {/* ── Body — white chubby oval ── */}
-          <ellipse cx="80" cy="92" rx="55" ry="51" fill="#ffffff" stroke={DARK} strokeWidth="3.5" />
-          <ellipse cx="80" cy="92" rx="55" ry="51" fill={m.bodyGlow} opacity="0.09" />
+          {/* Chubby oval body — gradient, NO border */}
+          <ellipse cx="80" cy="92" rx="55" ry="51" fill={`url(#${gid})`} />
 
-          {/* Specular highlight */}
-          <ellipse cx="63" cy="68" rx="20" ry="13" fill="white" opacity="0.50" transform="rotate(-28,63,68)" />
+          {/* Soft specular shine */}
+          <ellipse cx="62" cy="67" rx="20" ry="13" fill="white" opacity="0.55" transform="rotate(-28,62,67)" />
 
-          {/* Big oval rosy cheeks */}
-          <ellipse cx="38"  cy="104" rx="17" ry="12" fill={m.cheekColor} opacity="0.40" />
-          <ellipse cx="122" cy="104" rx="17" ry="12" fill={m.cheekColor} opacity="0.40" />
+          {/* Rosy cheeks */}
+          <ellipse cx="38"  cy="104" rx="17" ry="12" fill={m.cheekColor} opacity="0.38" />
+          <ellipse cx="122" cy="104" rx="17" ry="12" fill={m.cheekColor} opacity="0.38" />
 
           {/* Tiny button nose */}
-          <ellipse cx="80" cy="98" rx="5.5" ry="4" fill={DARK} opacity="0.40" />
+          <ellipse cx="80" cy="98" rx="5" ry="3.5" fill={INK} opacity="0.30" />
 
           <Eyes />
           <Mouth />
 
-          {/* Stubby feet */}
-          <ellipse cx="64" cy="143" rx="14" ry="7.5" fill="#f1f5f9" stroke={DARK} strokeWidth="2.5" />
-          <ellipse cx="96" cy="143" rx="14" ry="7.5" fill="#f1f5f9" stroke={DARK} strokeWidth="2.5" />
+          {/* Soft stubby feet — gradient, no border */}
+          <ellipse cx="64" cy="143" rx="14" ry="7.5" fill={`url(#${gid})`} />
+          <ellipse cx="96" cy="143" rx="14" ry="7.5" fill={`url(#${gid})`} />
 
         </svg>
       );
