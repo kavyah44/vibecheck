@@ -66,6 +66,18 @@
       75%  { transform: rotate(6deg);  }
     }
     .wiggle { animation: wiggle 0.4s ease-in-out; }
+
+    @keyframes slideUp {
+      from { opacity: 0; transform: translate(-50%, 20px) scale(0.96); }
+      to   { opacity: 1; transform: translate(-50%, 0px)  scale(1);    }
+    }
+    .slide-up { animation: slideUp 0.38s cubic-bezier(0.34, 1.56, 0.64, 1) forwards; }
+
+    @keyframes fadeInScale {
+      from { opacity: 0; transform: scale(0.94); }
+      to   { opacity: 1; transform: scale(1);    }
+    }
+    .fade-in-scale { animation: fadeInScale 0.3s ease-out forwards; }
   </style>
 </head>
 <body>
@@ -233,6 +245,30 @@
         mouthType:      'asking',
         eyeType:        'curious',
       },
+    };
+
+    /* ─────────────────────────────────────────────
+       VIBE-TO-SONG MAP
+       Each mood maps to a song title + artist.
+       ↓ Paste an MP3 URL or a direct audio URL into
+         the `url` field to activate real playback.
+       YouTube watch links don't work as audio src —
+       use a direct .mp3 / .ogg / .wav URL instead.
+    ───────────────────────────────────────────── */
+    const VIBE_SONGS = {
+      happy:     { title: "Don't Stop Me Now",  artist: "Queen",               url: '' /* ← paste MP3/audio URL here */ },
+      sad:       { title: "Tum Hi Ho",           artist: "Arijit Singh",        url: '' },
+      angry:     { title: "Break Stuff",         artist: "Limp Bizkit",         url: '' },
+      chill:     { title: "Weightless",          artist: "Marconi Union",       url: '' },
+      love:      { title: "Mauja Hi Mauja",      artist: "Shankar–Ehsaan–Loy",  url: '' },
+      anxious:   { title: "Breathe (2 AM)",      artist: "Anna Nalick",         url: '' },
+      hyped:     { title: "Mauja Hi Mauja",      artist: "Shankar–Ehsaan–Loy",  url: '' },
+      bored:     { title: "Clair de Lune",       artist: "Debussy",             url: '' },
+      nostalgic: { title: "The Night We Met",    artist: "Lord Huron",          url: '' },
+      tired:     { title: "Holocene",            artist: "Bon Iver",            url: '' },
+      grateful:  { title: "Beautiful Day",       artist: "U2",                  url: '' },
+      lonely:    { title: "Imagine",             artist: "John Lennon",         url: '' },
+      default:   { title: "Good Vibes Only",     artist: "— Vibe Radio —",      url: '' },
     };
 
     /* ─────────────────────────────────────────────
@@ -593,20 +629,14 @@
             {/* Radial gradient: bright white centre → soft mood tint at edge */}
             <radialGradient id={gid} cx="38%" cy="32%" r="68%" gradientUnits="objectBoundingBox">
               <stop offset="0%"   stopColor="#ffffff" stopOpacity="1" />
-              <stop offset="100%" stopColor={m.bodyGlow} stopOpacity="0.7" />
+              <stop offset="100%" stopColor={m.bodyGlow} stopOpacity="0.65" />
             </radialGradient>
           </defs>
 
           {/* Soft pulsing glow */}
           <ellipse cx="80" cy="92" rx="60" ry="56" fill={m.bodyGlow} opacity="0.32" className="pulse-ring" />
 
-          {/* Bear ears — BEFORE body so body naturally covers root */}
-          <circle cx="47"  cy="38" r="18" fill={`url(#${gid})`} />
-          <circle cx="47"  cy="38" r="12" fill={m.cheekColor} opacity="0.50" />
-          <circle cx="113" cy="38" r="18" fill={`url(#${gid})`} />
-          <circle cx="113" cy="38" r="12" fill={m.cheekColor} opacity="0.50" />
-
-          {/* Chubby oval body — gradient, NO border */}
+          {/* Chubby oval body — earless, gradient, no border */}
           <ellipse cx="80" cy="92" rx="55" ry="51" fill={`url(#${gid})`} />
 
           {/* Soft specular shine */}
@@ -667,14 +697,240 @@
     }
 
     /* ─────────────────────────────────────────────
+       SONG TOAST
+       Appears ~1.8s after a new mood is detected.
+       Suggests a matching song and asks to play.
+    ───────────────────────────────────────────── */
+    function SongToast({ mood, onYes, onDismiss }) {
+      const song = VIBE_SONGS[mood];
+      const m    = MOODS[mood] || MOODS.default;
+      if (!song) return null;
+      return (
+        <div className="fixed bottom-24 left-1/2 z-50 w-80 max-w-[calc(100vw-2rem)] slide-up"
+             style={{ transform: 'translateX(-50%)' }}>
+          <div className="rounded-2xl border border-white/30 shadow-2xl px-5 py-4"
+               style={{ background: 'rgba(255,255,255,0.20)', backdropFilter: 'blur(20px)' }}>
+
+            {/* Header */}
+            <div className="flex items-start justify-between mb-2">
+              <p className="text-white font-bold text-sm leading-snug"
+                 style={{ fontFamily: 'Fredoka, sans-serif', textShadow: '0 1px 6px rgba(0,0,0,0.3)' }}>
+                🎵 Want a song for this vibe?
+              </p>
+              <button onClick={onDismiss}
+                      className="text-white/40 hover:text-white/80 text-lg leading-none ml-3 transition-colors">
+                ×
+              </button>
+            </div>
+
+            {/* Song info */}
+            <div className="mb-3 pl-1">
+              <p className="text-white font-semibold text-sm"
+                 style={{ textShadow: '0 1px 4px rgba(0,0,0,0.25)' }}>
+                {song.title}
+              </p>
+              <p className="text-white/60 text-xs">{song.artist}</p>
+            </div>
+
+            {/* Buttons */}
+            <div className="flex gap-2">
+              <button
+                onClick={onYes}
+                className="flex-1 py-2 rounded-xl font-bold text-sm text-white transition-all
+                           hover:scale-105 active:scale-95"
+                style={{ background: 'rgba(255,255,255,0.28)', backdropFilter: 'blur(8px)',
+                         boxShadow: `0 0 16px ${m.accent}55` }}
+              >
+                ▶ Yes, play it!
+              </button>
+              <button
+                onClick={onDismiss}
+                className="px-4 py-2 rounded-xl text-sm text-white/60 hover:text-white/90
+                           transition-all hover:bg-white/10"
+              >
+                Skip
+              </button>
+            </div>
+          </div>
+        </div>
+      );
+    }
+
+    /* ─────────────────────────────────────────────
+       AUDIO PLAYER
+       Shows after "Yes" is clicked on the toast.
+       Uses HTML5 <audio> — works with any direct
+       MP3/OGG/WAV URL pasted into VIBE_SONGS above.
+    ───────────────────────────────────────────── */
+    function AudioPlayer({ mood, onClose }) {
+      const [playing,  setPlaying]  = useState(false);
+      const [progress, setProgress] = useState(0);
+      const [elapsed,  setElapsed]  = useState(0);
+      const [total,    setTotal]    = useState(0);
+      const audioRef       = useRef(null);
+      const intervalRef    = useRef(null);
+
+      const song   = VIBE_SONGS[mood] || VIBE_SONGS.default;
+      const m      = MOODS[mood]      || MOODS.default;
+      const hasUrl = !!song.url;
+
+      /* Format seconds → m:ss */
+      const fmt = s => `${Math.floor(s/60)}:${String(Math.floor(s%60)).padStart(2,'0')}`;
+
+      /* Sync audio metadata */
+      const handleMeta = () => {
+        if (audioRef.current) setTotal(audioRef.current.duration || 0);
+      };
+
+      const clearTick = () => clearInterval(intervalRef.current);
+
+      const startTick = () => {
+        clearTick();
+        intervalRef.current = setInterval(() => {
+          if (!audioRef.current) return;
+          const cur = audioRef.current.currentTime;
+          const dur = audioRef.current.duration || 1;
+          setElapsed(cur);
+          setProgress((cur / dur) * 100);
+          if (cur >= dur) { clearTick(); setPlaying(false); setProgress(100); }
+        }, 250);
+      };
+
+      const togglePlay = () => {
+        if (!hasUrl || !audioRef.current) return;
+        if (playing) {
+          audioRef.current.pause();
+          clearTick();
+          setPlaying(false);
+        } else {
+          audioRef.current.play().catch(() => {});
+          startTick();
+          setPlaying(true);
+        }
+      };
+
+      /* Seek by clicking progress bar */
+      const handleSeek = (e) => {
+        if (!hasUrl || !audioRef.current) return;
+        const rect = e.currentTarget.getBoundingClientRect();
+        const pct  = Math.max(0, Math.min(1, (e.clientX - rect.left) / rect.width));
+        audioRef.current.currentTime = pct * (audioRef.current.duration || 0);
+        setProgress(pct * 100);
+      };
+
+      /* Reset when mood changes, cleanup on unmount */
+      useEffect(() => {
+        clearTick();
+        if (audioRef.current) { audioRef.current.pause(); audioRef.current.currentTime = 0; }
+        setPlaying(false);
+        setProgress(0);
+        setElapsed(0);
+      }, [mood]);
+
+      useEffect(() => () => { clearTick(); audioRef.current?.pause(); }, []);
+
+      return (
+        <div className="fixed bottom-6 left-1/2 z-40 w-80 max-w-[calc(100vw-2rem)] fade-in-scale"
+             style={{ transform: 'translateX(-50%)' }}>
+          {hasUrl && (
+            <audio ref={audioRef} src={song.url} preload="metadata" onLoadedMetadata={handleMeta} />
+          )}
+          <div className="rounded-2xl border border-white/30 shadow-2xl px-5 py-4"
+               style={{ background: 'rgba(255,255,255,0.22)', backdropFilter: 'blur(22px)' }}>
+
+            {/* Header row */}
+            <div className="flex items-start justify-between mb-3">
+              <div className="flex items-center gap-2">
+                <span className="text-lg">🎵</span>
+                <div>
+                  <p className="text-white font-bold text-sm leading-tight"
+                     style={{ fontFamily: 'Fredoka, sans-serif', textShadow: '0 1px 6px rgba(0,0,0,0.3)' }}>
+                    {song.title}
+                  </p>
+                  <p className="text-white/55 text-xs">{song.artist}</p>
+                </div>
+              </div>
+              <button onClick={onClose}
+                      className="text-white/40 hover:text-white/90 text-xl leading-none ml-2 transition-colors">
+                ×
+              </button>
+            </div>
+
+            {/* Progress bar — clickable */}
+            <div
+              className="relative h-2 bg-white/20 rounded-full mb-2 overflow-hidden cursor-pointer group"
+              onClick={handleSeek}
+            >
+              <div
+                className="h-full rounded-full transition-all duration-200"
+                style={{ width: `${progress}%`, background: m.accent,
+                         boxShadow: `0 0 8px ${m.accent}99` }}
+              />
+              {/* Thumb dot */}
+              <div
+                className="absolute top-1/2 -translate-y-1/2 w-3 h-3 rounded-full bg-white shadow-md
+                           opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none"
+                style={{ left: `calc(${progress}% - 6px)` }}
+              />
+            </div>
+
+            {/* Time display */}
+            <div className="flex justify-between text-white/40 text-xs mb-3">
+              <span>{fmt(elapsed)}</span>
+              <span>{total > 0 ? fmt(total) : '--:--'}</span>
+            </div>
+
+            {/* Controls row */}
+            <div className="flex items-center gap-3">
+              {/* Play / Pause */}
+              <button
+                onClick={togglePlay}
+                disabled={!hasUrl}
+                className={`w-11 h-11 rounded-full flex items-center justify-center text-lg font-bold
+                            transition-all
+                            ${hasUrl
+                              ? 'text-white hover:scale-110 active:scale-95'
+                              : 'text-white/25 cursor-not-allowed'}`}
+                style={hasUrl ? { background: m.accent,
+                                  boxShadow: `0 0 20px ${m.accent}88` } : { background: 'rgba(255,255,255,0.12)' }}
+              >
+                {playing ? '⏸' : '▶'}
+              </button>
+
+              {/* Status text */}
+              <div className="flex-1 min-w-0">
+                {hasUrl ? (
+                  <p className="text-white/60 text-xs truncate">
+                    {playing ? 'Now playing…' : 'Tap ▶ to play'}
+                  </p>
+                ) : (
+                  <p className="text-white/35 text-xs leading-snug italic">
+                    Paste a URL in VIBE_SONGS['{mood}'] to activate ✦
+                  </p>
+                )}
+              </div>
+            </div>
+
+          </div>
+        </div>
+      );
+    }
+
+    /* ─────────────────────────────────────────────
        MAIN APP
     ───────────────────────────────────────────── */
     function App() {
-      const [input,      setInput]      = useState('');
-      const [activeMood, setActiveMood] = useState('default');
-      const [showHint,   setShowHint]   = useState(true);
-      const inputRef = useRef(null);
+      const [input,        setInput]        = useState('');
+      const [activeMood,   setActiveMood]   = useState('default');
+      const [showHint,     setShowHint]     = useState(true);
+      const [toastVisible, setToastVisible] = useState(false);
+      const [playerVisible,setPlayerVisible]= useState(false);
 
+      const inputRef        = useRef(null);
+      const toastTimerRef   = useRef(null);
+      const lastToastMood   = useRef('default'); // track which mood last triggered the toast
+
+      /* ── Mood detection from input ── */
       useEffect(() => {
         const detected = getMood(input);
         if (detected) {
@@ -689,10 +945,38 @@
         }
       }, [input]);
 
+      /* ── Toast scheduling: fires 1.8s after a NEW non-default mood ── */
+      useEffect(() => {
+        clearTimeout(toastTimerRef.current);
+
+        if (activeMood !== 'default' && activeMood !== lastToastMood.current) {
+          // New mood detected — dismiss old toast, schedule fresh one
+          setToastVisible(false);
+          toastTimerRef.current = setTimeout(() => {
+            lastToastMood.current = activeMood;
+            setToastVisible(true);
+          }, 1800);
+        } else if (activeMood === 'default') {
+          lastToastMood.current = 'default';
+          setToastVisible(false);
+          // Keep player open — let user close it manually
+        }
+
+        return () => clearTimeout(toastTimerRef.current);
+      }, [activeMood]);
+
       const handlePillClick = useCallback((mood) => {
         setInput(mood);
         inputRef.current?.focus();
       }, []);
+
+      const handleToastYes = () => {
+        setToastVisible(false);
+        setPlayerVisible(true);
+      };
+
+      const handleToastDismiss = () => setToastVisible(false);
+      const handlePlayerClose  = () => setPlayerVisible(false);
 
       const m = MOODS[activeMood] || MOODS.default;
 
@@ -748,9 +1032,9 @@
                   vibe-transition text-white placeholder-white/40 text-lg font-semibold
                   focus:border-white/80"
                 style={{
-                  background:  'rgba(255,255,255,0.18)',
+                  background:     'rgba(255,255,255,0.18)',
                   backdropFilter: 'blur(14px)',
-                  textShadow:  '0 1px 6px rgba(0,0,0,0.2)',
+                  textShadow:     '0 1px 6px rgba(0,0,0,0.2)',
                 }}
                 autoFocus
               />
@@ -777,9 +1061,29 @@
             )}
           </div>
 
-          {/* Footer */}
-          <div className="absolute bottom-4 text-white/30 text-xs z-10 font-medium"
-               style={{ textShadow: '0 1px 4px rgba(0,0,0,0.3)' }}>
+          {/* Song Toast */}
+          {toastVisible && (
+            <SongToast
+              mood={activeMood}
+              onYes={handleToastYes}
+              onDismiss={handleToastDismiss}
+            />
+          )}
+
+          {/* Audio Player */}
+          {playerVisible && (
+            <AudioPlayer
+              mood={activeMood}
+              onClose={handlePlayerClose}
+            />
+          )}
+
+          {/* Footer — pushed up when player is visible */}
+          <div
+            className={`absolute text-white/30 text-xs z-10 font-medium transition-all duration-300
+                        ${playerVisible ? 'bottom-[calc(theme(spacing.6)+7rem)]' : 'bottom-4'}`}
+            style={{ textShadow: '0 1px 4px rgba(0,0,0,0.3)' }}
+          >
             Built with vibes &amp; React
           </div>
         </div>
