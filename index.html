@@ -97,6 +97,21 @@
       from { transform: rotate(0deg); }
       to   { transform: rotate(360deg); }
     }
+
+    /* Speech bubble pop-in */
+    @keyframes bubblePop {
+      0%   { opacity: 0; transform: scale(0.82) translateY(8px); }
+      65%  { transform: scale(1.04) translateY(-2px); }
+      100% { opacity: 1; transform: scale(1) translateY(0); }
+    }
+    .bubble-pop { animation: bubblePop 0.38s cubic-bezier(0.34, 1.56, 0.64, 1) forwards; }
+
+    /* Mini-player slides up from bottom */
+    @keyframes slideUpPlayer {
+      from { opacity: 0; transform: translateX(-50%) translateY(24px) scale(0.95); }
+      to   { opacity: 1; transform: translateX(-50%) translateY(0)     scale(1);    }
+    }
+    .slide-up-player { animation: slideUpPlayer 0.4s cubic-bezier(0.34, 1.4, 0.64, 1) forwards; }
   </style>
 </head>
 <body>
@@ -727,82 +742,64 @@
     }
 
     /* ─────────────────────────────────────────────
-       SONG MODAL — centered overlay, three phases:
-         'asking'  → show song suggestion + Yes/Skip
-         'loading' → spinner while YouTube API runs
-         'playing' → embedded YouTube iframe
+       SONG BUBBLE — cute speech bubble above VibeBol
+       Phases: 'asking' / 'loading' / 'error'
+       VibeBol is "talking" — tail points down at mascot
     ───────────────────────────────────────────── */
-    function SongModal({ mood, phase, videoId, videoTitle, error, onYes, onClose }) {
+    function SongBubble({ mood, phase, error, onYes, onClose }) {
       const song = VIBE_SONGS[mood] || VIBE_SONGS.default;
       const m    = MOODS[mood]      || MOODS.default;
 
-      /* YouTube embed — chorus window is chorusStart → chorusStart + 75s */
-      const start = song.chorusStart || 0;
-      const end   = start + 75;
-      const ytSrc = videoId
-        ? `https://www.youtube.com/embed/${videoId}?autoplay=1&start=${start}&end=${end}&modestbranding=1&rel=0&showinfo=0`
-        : null;
-
       return (
-        /* ── Backdrop ── */
-        <div className="fixed inset-0 z-50 flex items-center justify-center backdrop-in"
-             style={{ background: 'rgba(0,0,0,0.45)', backdropFilter: 'blur(6px)' }}
-             onClick={phase === 'asking' ? onClose : undefined}>
+        <div className="flex flex-col items-center bubble-pop" style={{ marginBottom: '-4px', zIndex: 20 }}>
 
-          {/* ── Modal card ── */}
+          {/* ── Bubble body ── */}
           <div
-            className="relative w-80 max-w-[calc(100vw-2rem)] rounded-3xl overflow-hidden fade-in-scale"
+            className="relative px-4 py-3 rounded-2xl"
             style={{
-              background:   'rgba(15,10,30,0.72)',
-              backdropFilter: 'blur(28px)',
-              border:       '1px solid rgba(255,255,255,0.18)',
-              boxShadow:    `0 30px 60px rgba(0,0,0,0.55), 0 0 0 1px rgba(255,255,255,0.06), 0 0 40px ${m.accent}33`,
+              background:     'rgba(255,255,255,0.22)',
+              backdropFilter: 'blur(22px)',
+              border:         '1.5px solid rgba(255,255,255,0.50)',
+              boxShadow:      `0 8px 28px rgba(0,0,0,0.14), 0 0 22px ${m.accent}55`,
+              minWidth:       '218px',
+              maxWidth:       '270px',
             }}
-            onClick={e => e.stopPropagation()}
           >
-            {/* ── Header bar (always visible) ── */}
-            <div className="flex items-center justify-between px-5 pt-5 pb-3">
-              <div className="flex items-center gap-2">
-                <span className="text-base">🎵</span>
-                <div>
-                  <p className="text-white font-bold text-sm leading-tight"
-                     style={{ fontFamily: 'Fredoka, sans-serif' }}>
-                    {phase === 'playing' && videoTitle ? videoTitle : song.title}
-                  </p>
-                  <p className="text-white/50 text-xs">{song.artist}</p>
-                </div>
-              </div>
-              <button
-                onClick={onClose}
-                className="w-7 h-7 rounded-full bg-white/10 hover:bg-white/25 flex items-center justify-center
-                           text-white/60 hover:text-white transition-all text-base leading-none"
-              >
-                ×
-              </button>
-            </div>
+            {/* Close */}
+            <button
+              onClick={onClose}
+              className="absolute top-2 right-3 text-white/45 hover:text-white/90 text-lg
+                         font-bold leading-none transition-colors"
+            >
+              ×
+            </button>
 
-            {/* ── Phase: asking ── */}
+            {/* ── Asking ── */}
             {phase === 'asking' && (
-              <div className="px-5 pb-5">
-                <p className="text-white/70 text-xs mb-4 leading-relaxed">
-                  Vibe detected ✦ Want to hear the chorus?
+              <div className="text-center">
+                <p className="text-white font-bold text-sm pr-5 leading-tight"
+                   style={{ fontFamily: 'Fredoka, sans-serif' }}>
+                  {song.title}
                 </p>
-                <div className="flex gap-2">
+                <p className="text-white/58 text-xs mt-0.5 mb-3 pr-4">
+                  by {song.artist} · wanna hear it? 🎵
+                </p>
+                <div className="flex gap-2 justify-center">
                   <button
                     onClick={onYes}
-                    className="flex-1 py-2.5 rounded-xl font-bold text-sm text-white transition-all
-                               hover:scale-105 active:scale-95"
+                    className="px-5 py-1.5 rounded-xl text-xs font-bold text-white
+                               transition-all hover:scale-105 active:scale-95"
                     style={{
-                      background: `linear-gradient(135deg, ${m.accent}cc, ${m.accent}88)`,
-                      boxShadow:  `0 0 20px ${m.accent}66`,
+                      background: `linear-gradient(135deg, ${m.accent}, ${m.accent}99)`,
+                      boxShadow:  `0 0 16px ${m.accent}77`,
                     }}
                   >
-                    ▶ Yes, play it!
+                    ▶ Play it!
                   </button>
                   <button
                     onClick={onClose}
-                    className="px-4 py-2.5 rounded-xl text-sm text-white/55 hover:text-white/90
-                               transition-all hover:bg-white/10 border border-white/10"
+                    className="px-3 py-1.5 rounded-xl text-xs text-white/55 hover:text-white
+                               transition-all hover:bg-white/20 border border-white/25"
                   >
                     Skip
                   </button>
@@ -810,43 +807,102 @@
               </div>
             )}
 
-            {/* ── Phase: loading ── */}
+            {/* ── Loading ── */}
             {phase === 'loading' && (
-              <div className="flex flex-col items-center gap-3 px-5 pb-6 pt-2">
-                {/* Spinner */}
+              <div className="flex items-center justify-center gap-2 py-1 px-1">
                 <div
-                  className="w-10 h-10 rounded-full border-2 border-white/20 border-t-white/80"
+                  className="w-4 h-4 rounded-full border-2 border-white/25 border-t-white/85 flex-shrink-0"
                   style={{ animation: 'spin 0.85s linear infinite' }}
                 />
-                <p className="text-white/55 text-xs">Finding your vibe song…</p>
+                <p className="text-white/65 text-xs">Finding your song…</p>
               </div>
             )}
 
-            {/* ── Phase: error ── */}
+            {/* ── Error ── */}
             {phase === 'error' && (
-              <div className="px-5 pb-5 pt-1">
-                <p className="text-white/50 text-xs text-center leading-relaxed">{error || 'Could not find a song. Try again!'}</p>
+              <div className="text-center py-0.5 pr-4">
+                <p className="text-white/60 text-xs">couldn't load 😕 try again!</p>
+                {error && <p className="text-white/35 text-[10px] mt-0.5 truncate">{error}</p>}
               </div>
             )}
+          </div>
 
-            {/* ── Phase: playing — YouTube iframe ── */}
-            {phase === 'playing' && ytSrc && (
-              <div>
-                <iframe
-                  key={videoId}
-                  src={ytSrc}
-                  width="100%"
-                  height="190"
-                  frameBorder="0"
-                  allow="autoplay; encrypted-media; picture-in-picture"
-                  allowFullScreen
-                  style={{ display: 'block' }}
-                />
-                <p className="text-white/35 text-xs text-center py-2.5">
-                  ♫ Playing chorus • ~75 sec
-                </p>
+          {/* ── Tail — CSS triangle pointing down at VibeBol ── */}
+          <div style={{
+            width:       0,
+            height:      0,
+            borderLeft:  '8px solid transparent',
+            borderRight: '8px solid transparent',
+            borderTop:   '9px solid rgba(255,255,255,0.44)',
+            marginTop:   '-1px',
+          }} />
+        </div>
+      );
+    }
+
+    /* ─────────────────────────────────────────────
+       MINI PLAYER — compact YouTube embed
+       Fixed at bottom-centre, slides up, no overlay
+    ───────────────────────────────────────────── */
+    function MiniPlayer({ mood, videoId, videoTitle, onClose }) {
+      const song  = VIBE_SONGS[mood] || VIBE_SONGS.default;
+      const m     = MOODS[mood]      || MOODS.default;
+      const start = song.chorusStart || 0;
+      const end   = start + 75;
+      const ytSrc =
+        `https://www.youtube.com/embed/${videoId}` +
+        `?autoplay=1&start=${start}&end=${end}&modestbranding=1&rel=0&showinfo=0`;
+
+      return (
+        <div
+          className="fixed bottom-5 left-1/2 z-40 slide-up-player"
+          style={{ transform: 'translateX(-50%)' }}
+        >
+          <div
+            className="rounded-2xl overflow-hidden"
+            style={{
+              width:          '288px',
+              background:     'rgba(12,8,28,0.90)',
+              backdropFilter: 'blur(24px)',
+              border:         '1.5px solid rgba(255,255,255,0.14)',
+              boxShadow:      `0 20px 50px rgba(0,0,0,0.5), 0 0 30px ${m.accent}44`,
+            }}
+          >
+            {/* Header row */}
+            <div className="flex items-center justify-between px-3 py-2">
+              <div className="flex items-center gap-1.5 min-w-0">
+                <span className="text-xs flex-shrink-0">🎵</span>
+                <div className="min-w-0">
+                  <p
+                    className="text-white/90 text-xs font-bold leading-tight truncate"
+                    style={{ fontFamily: 'Fredoka, sans-serif', maxWidth: '200px' }}
+                  >
+                    {videoTitle || song.title}
+                  </p>
+                  <p className="text-white/40 text-[10px]">{song.artist} · chorus ~75s</p>
+                </div>
               </div>
-            )}
+              <button
+                onClick={onClose}
+                className="w-6 h-6 rounded-full bg-white/10 hover:bg-white/25 flex items-center
+                           justify-center text-white/55 hover:text-white text-sm ml-2
+                           flex-shrink-0 transition-all"
+              >
+                ×
+              </button>
+            </div>
+
+            {/* YouTube iframe */}
+            <iframe
+              key={videoId}
+              src={ytSrc}
+              width="288"
+              height="162"
+              frameBorder="0"
+              allow="autoplay; encrypted-media; picture-in-picture"
+              allowFullScreen
+              style={{ display: 'block' }}
+            />
           </div>
         </div>
       );
@@ -856,21 +912,21 @@
        MAIN APP
     ───────────────────────────────────────────── */
     function App() {
-      const [input,      setInput]      = useState('');
-      const [activeMood, setActiveMood] = useState('default');
-      const [showHint,   setShowHint]   = useState(true);
-      const [flashKey,   setFlashKey]   = useState(0);   /* bumped on Enter to re-trigger flash */
+      const [input,       setInput]       = useState('');
+      const [activeMood,  setActiveMood]  = useState('default');
+      const [showHint,    setShowHint]    = useState(true);
+      const [flashKey,    setFlashKey]    = useState(0);
 
-      /*
-        modal.phase: 'hidden' | 'asking' | 'loading' | 'playing' | 'error'
-        modal.videoId / videoTitle: filled after successful YouTube search
-        modal.error: error message string
-      */
-      const [modal, setModal] = useState({ phase: 'hidden', videoId: null, videoTitle: null, error: null });
+      /* Bubble: 'hidden' | 'asking' | 'loading' | 'error' */
+      const [bubblePhase, setBubblePhase] = useState('hidden');
+      const [bubbleError, setBubbleError] = useState(null);
 
-      const inputRef       = useRef(null);
-      const toastTimerRef  = useRef(null);
-      const lastModalMood  = useRef('default');
+      /* Mini-player: shown separately at bottom, no overlay */
+      const [player, setPlayer] = useState({ visible: false, videoId: null, videoTitle: null });
+
+      const inputRef      = useRef(null);
+      const bubbleTimer   = useRef(null);
+      const lastBubbleMood = useRef('default');
 
       /* ── Real-time mood detection ── */
       useEffect(() => {
@@ -887,45 +943,49 @@
         }
       }, [input]);
 
-      /* ── Schedule song modal ~1.8s after a NEW non-default mood ── */
+      /* ── Show bubble ~1.8s after a NEW non-default mood ── */
       useEffect(() => {
-        clearTimeout(toastTimerRef.current);
+        clearTimeout(bubbleTimer.current);
 
-        if (activeMood !== 'default' && activeMood !== lastModalMood.current) {
-          /* Close any open modal for the previous mood */
-          setModal({ phase: 'hidden', videoId: null, videoTitle: null, error: null });
-          toastTimerRef.current = setTimeout(() => {
-            lastModalMood.current = activeMood;
-            setModal(prev => prev.phase === 'hidden'
-              ? { phase: 'asking', videoId: null, videoTitle: null, error: null }
-              : prev   /* don't interrupt playing */
-            );
+        if (activeMood !== 'default' && activeMood !== lastBubbleMood.current) {
+          setBubblePhase('hidden');
+          setBubbleError(null);
+          bubbleTimer.current = setTimeout(() => {
+            lastBubbleMood.current = activeMood;
+            setBubblePhase(prev => prev === 'hidden' ? 'asking' : prev);
           }, 1800);
         } else if (activeMood === 'default') {
-          lastModalMood.current = 'default';
-          /* Leave playing modal open (user might still be listening) */
-          setModal(prev => prev.phase === 'asking' ? { ...prev, phase: 'hidden' } : prev);
+          lastBubbleMood.current = 'default';
+          setBubblePhase(prev => prev === 'asking' ? 'hidden' : prev);
         }
 
-        return () => clearTimeout(toastTimerRef.current);
+        return () => clearTimeout(bubbleTimer.current);
       }, [activeMood]);
 
       /* ── YouTube search via Netlify Function ── */
       const handleYes = useCallback(async () => {
         const song = VIBE_SONGS[activeMood] || VIBE_SONGS.default;
-        setModal(prev => ({ ...prev, phase: 'loading' }));
+        setBubblePhase('loading');
+        setBubbleError(null);
         try {
           const res  = await fetch(`/.netlify/functions/yt-search?q=${encodeURIComponent(song.query)}`);
           const data = await res.json();
           if (!res.ok || !data.videoId) throw new Error(data.error || 'No video found');
-          setModal({ phase: 'playing', videoId: data.videoId, videoTitle: data.title, error: null });
+          setBubblePhase('hidden');
+          setPlayer({ visible: true, videoId: data.videoId, videoTitle: data.title });
         } catch (err) {
-          setModal({ phase: 'error', videoId: null, videoTitle: null, error: err.message });
+          setBubbleError(err.message);
+          setBubblePhase('error');
         }
       }, [activeMood]);
 
-      const handleModalClose = useCallback(() =>
-        setModal({ phase: 'hidden', videoId: null, videoTitle: null, error: null }), []);
+      const handleBubbleClose = useCallback(() => {
+        setBubblePhase('hidden');
+        setBubbleError(null);
+      }, []);
+
+      const handlePlayerClose = useCallback(() =>
+        setPlayer({ visible: false, videoId: null, videoTitle: null }), []);
 
       /* ── Pill click ── */
       const handlePillClick = useCallback((mood) => {
@@ -933,11 +993,11 @@
         inputRef.current?.focus();
       }, []);
 
-      /* ── Enter key → confirm vibe shift with flash animation ── */
+      /* ── Enter key → confirm vibe shift with flash ── */
       const handleKeyDown = useCallback((e) => {
         if (e.key === 'Enter') {
           e.preventDefault();
-          setFlashKey(k => k + 1);   /* triggers vibe-flash via key-driven re-mount */
+          setFlashKey(k => k + 1);
           inputRef.current?.blur();
           setTimeout(() => inputRef.current?.focus(), 50);
         }
@@ -971,13 +1031,24 @@
             >
               VibeCheck
             </h1>
-            <p className="text-white/75 text-sm md:text-base mb-8 font-medium tracking-wide"
+            <p className="text-white/75 text-sm md:text-base mb-6 font-medium tracking-wide"
                style={{ textShadow: '0 1px 8px rgba(0,0,0,0.3)' }}>
               Drop a mood. Watch the vibe shift.
             </p>
 
+            {/* Song bubble — VibeBol "speaks" above itself */}
+            {bubblePhase !== 'hidden' && (
+              <SongBubble
+                mood={activeMood}
+                phase={bubblePhase}
+                error={bubbleError}
+                onYes={handleYes}
+                onClose={handleBubbleClose}
+              />
+            )}
+
             {/* Mascot */}
-            <div className="bounce-in mb-4" key={activeMood}>
+            <div className="bounce-in mb-3" key={activeMood}>
               <VibeBol mood={activeMood} />
             </div>
 
@@ -1034,16 +1105,13 @@
             )}
           </div>
 
-          {/* Song Modal (all phases) */}
-          {modal.phase !== 'hidden' && (
-            <SongModal
+          {/* Mini-player — slides up from bottom, no overlay */}
+          {player.visible && player.videoId && (
+            <MiniPlayer
               mood={activeMood}
-              phase={modal.phase}
-              videoId={modal.videoId}
-              videoTitle={modal.videoTitle}
-              error={modal.error}
-              onYes={handleYes}
-              onClose={handleModalClose}
+              videoId={player.videoId}
+              videoTitle={player.videoTitle}
+              onClose={handlePlayerClose}
             />
           )}
 
